@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Low Poly Plane</title>
+
+<style>
+body {
+  margin: 0;
+  background: #111;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 30px 15px;
+}
+
+h1 {
+  font-size: 28px;
+}
+
+button {
+  background: #238636;
+  color: white;
+  border: 0;
+  border-radius: 12px;
+  padding: 16px 24px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:active {
+  transform: scale(.96);
+}
+
+p {
+  color: #aaa;
+}
+</style>
+</head>
+
+<body>
+
+<h1>✈️ Low-Poly Open Cockpit Plane</h1>
+<p>Rounded body • Open cockpit • No propeller blades</p>
+
+<button onclick="downloadPlane()">
+Download Plane (.OBJ)
+</button>
+
+<script>
+
+function downloadPlane() {
+
+  let vertices = [];
+  let faces = [];
+
+  function V(x,y,z) {
+    vertices.push([x,y,z]);
+    return vertices.length;
+  }
+
+  function F(a,b,c,d=null) {
+    if(d === null)
+      faces.push([a,b,c]);
+    else
+      faces.push([a,b,c,d]);
+  }
+
+  // -------------------------
+  // ROUNDED FUSELAGE
+  // -------------------------
+
+  const rings = [
+    [3.5,0.18,0.20],
+    [3.15,0.42,0.44],
+    [2.65,0.58,0.58],
+    [1.75,0.68,0.68],
+    [0.55,0.72,0.72],
+    [-0.85,0.70,0.69],
+    [-2.15,0.56,0.57],
+    [-3.05,0.34,0.42]
+  ];
+
+  let previous = null;
+
+  for (const ring of rings) {
+
+    let x = ring[0];
+    let ry = ring[1];
+    let rz = ring[2];
+
+    let current = [];
+
+    for(let i=0;i<12;i++){
+
+      let angle = Math.PI * 2 * i / 12;
+
+      current.push(
+        V(
+          x,
+          Math.cos(angle)*ry,
+          0.72 + Math.sin(angle)*rz
+        )
+      );
+
+    }
+
+    if(previous){
+
+      for(let i=0;i<12;i++){
+
+        let next = (i+1)%12;
+
+        F(
+          previous[i],
+          previous[next],
+          current[next],
+          current[i]
+        );
+
+      }
+
+    }
+
+    previous = current;
+  }
+
+  // -------------------------
+  // FRONT NOSE
+  // -------------------------
+
+  // Flat rounded front where the propeller would normally attach
+  let front = previous;
+
+  let center = V(3.52,0,0.72);
+
+  for(let i=0;i<12;i++){
+
+    let next = (i+1)%12;
+
+    F(
+      front[i],
+      front[next],
+      center
+    );
+
+  }
+
+  // Small central mounting hub
+  function box(cx,cy,cz,sx,sy,sz){
+
+    let x0=cx-sx/2;
+    let x1=cx+sx/2;
+
+    let y0=cy-sy/2;
+    let y1=cy+sy/2;
+
+    let z0=cz-sz/2;
+    let z1=cz+sz/2;
+
+    let a=V(x0,y0,z0);
+    let b=V(x1,y0,z0);
+    let c=V(x1,y1,z0);
+    let d=V(x0,y1,z0);
+
+    let e=V(x0,y0,z1);
+    let f=V(x1,y0,z1);
+    let g=V(x1,y1,z1);
+    let h=V(x0,y1,z1);
+
+    F(a,b,c,d);
+    F(e,h,g,f);
+    F(a,e,f,b);
+    F(b,f,g,c);
+    F(c,g,h,d);
+    F(e,a,d,h);
+  }
+
+  // Propeller mounting point
+  // NO BLADES!
+  box(
+    3.60,
+    0,
+    0.72,
+    0.18,
+    0.30,
+    0.30
+  );
+
+  // -------------------------
+  // WINGS
+  // -------------------------
+
+  function prism(points,z1,z2){
+
+    let bottom=[];
+    let top=[];
+
+    for(const p of points)
+      bottom.push(V(p[0],p[1],z1));
+
+    for(const p of points)
+      top.push(V(p[0],p[1],z2));
+
+    F(...bottom);
+    F(...top.reverse());
+
+    for(let i=0;i<points.length;i++){
+
+      let n=(i+1)%points.length;
+
+      F(
+        bottom[i],
+        bottom[n],
+        top[points.length-1-n],
+        top[points.length-1-i]
+      );
+
+    }
+  }
+
+  prism(
+    [
+      [1.05,-0.48],
+      [0.55,-3.2],
+      [-0.15,-4.0],
+      [-1.15,-3.72],
+      [-0.55,-0.45]
+    ],
+    0.50,
+    0.63
+  );
+
+  prism(
+    [
+      [1.05,0.48],
+      [0.55,3.2],
+      [-0.15,4.0],
+      [-1.15,3.72],
+      [-0.55,0.45]
+    ],
+    0.50,
+    0.63
+  );
+
+  // -------------------------
+  // TAIL WINGS
+  // -------------------------
+
+  prism(
+    [
+      [-2.0,-0.38],
+      [-2.45,-1.6],
+      [-3.0,-1.32],
+      [-2.8,-0.34]
+    ],
+    0.77,
+    0.89
+  );
+
+  prism(
+    [
+      [-2.0,0.38],
+      [-2.45,1.6],
+      [-3.0,1.32],
+      [-2.8,0.34]
+    ],
+    0.77,
+    0.89
+  );
+
+  // -------------------------
+  // VERTICAL TAIL
+  // -------------------------
+
+  prism(
+    [
+      [-3.08,-0.08],
+      [-3.08,0.08],
+      [-3.28,0.08],
+      [-3.28,-0.08]
+    ],
+    0.78,
+    1.92
+  );
+
+  // -------------------------
+  // OPEN COCKPIT
+  // -------------------------
+
+  // Left cockpit rim
+  box(
+    0.45,
+    -0.43,
+    1.27,
+    1.28,
+    0.16,
+    0.20
+  );
+
+  // Right cockpit rim
+  box(
+    0.45,
+    0.43,
+    1.27,
+    1.28,
+    0.16,
+    0.20
+  );
+
+  // Front cockpit rim
+  box(
+    -0.19,
+    0,
+    1.27,
+    0.16,
+    0.72,
+    0.20
+  );
+
+  // Rear cockpit rim
+  box(
+    1.09,
+    0,
+    1.27,
+    0.16,
+    0.72,
+    0.20
+  );
+
+  // Seat
+  box(
+    0.12,
+    0,
+    1.12,
+    0.42,
+    0.50,
+    0.10
+  );
+
+  // Seat back
+  box(
+    -0.03,
+    0,
+    1.32,
+    0.10,
+    0.50,
+    0.42
+  );
+
+  // Instrument panel
+  box(
+    0.92,
+    0,
+    1.32,
+    0.16,
+    0.48,
+    0.22
+  );
+
+  // -------------------------
+  // LANDING GEAR
+  // -------------------------
+
+  box(
+    0.32,
+    -0.62,
+    0.29,
+    0.10,
+    0.10,
+    0.42
+  );
+
+  box(
+    0.32,
+    0.62,
+    0.29,
+    0.10,
+    0.10,
+    0.42
+  );
+
+  // Wheels
+  box(
+    0.32,
+    -0.62,
+    0.08,
+    0.32,
+    0.14,
+    0.16
+  );
+
+  box(
+    0.32,
+    0.62,
+    0.08,
+    0.32,
+    0.14,
+    0.16
+  );
+
+  // -------------------------
+  // CREATE OBJ
+  // -------------------------
+
+  let obj =
+    "# Low Poly Open Cockpit Plane\n" +
+    "# No propeller blades\n\n";
+
+  for(const v of vertices){
+
+    obj +=
+      `v ${v[0].toFixed(4)} ${v[1].toFixed(4)} ${v[2].toFixed(4)}\n`;
+
+  }
+
+  obj += "\n";
+
+  for(const f of faces){
+
+    obj += "f " + f.join(" ") + "\n";
+
+  }
+
+  // -------------------------
+  // DOWNLOAD
+  // -------------------------
+
+  let blob = new Blob(
+    [obj],
+    {type:"text/plain"}
+  );
+
+  let url = URL.createObjectURL(blob);
+
+  let a = document.createElement("a");
+
+  a.href = url;
+  a.download = "round_open_cockpit_plane.obj";
+
+  document.body.appendChild(a);
+
+  a.click();
+
+  a.remove();
+
+  URL.revokeObjectURL(url);
+}
+
+</script>
+
+</body>
+</html>
